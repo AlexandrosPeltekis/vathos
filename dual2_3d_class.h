@@ -67,59 +67,41 @@ struct Dual2_3d {
 
     // Constructors
     Dual2_3d()
-        : val(0), dx(0), dy(0), dz(0), dxx(0), dxy(0), dxz(0), dyy(0), dyz(0), dzz(0) {
-    }
+        : val(0), dx(0), dy(0), dz(0), dxx(0), dxy(0), dxz(0), dyy(0), dyz(0), dzz(0) {}
 
     Dual2_3d(const T& v)
-        : val(v), dx(0), dy(0), dz(0), dxx(0), dxy(0), dxz(0), dyy(0), dyz(0), dzz(0) {
-    }
+        : val(v), dx(0), dy(0), dz(0), dxx(0), dxy(0), dxz(0), dyy(0), dyz(0), dzz(0) {}
 
-	// Constructors with first and second derivatives
     Dual2_3d(const T& v, const T& dx_, const T& dy_, const T& dz_,
         const T& dxx_ = 0, const T& dxy_ = 0, const T& dxz_ = 0,
         const T& dyy_ = 0, const T& dyz_ = 0, const T& dzz_ = 0)
         : val(v), dx(dx_), dy(dy_), dz(dz_),
         dxx(dxx_), dxy(dxy_), dxz(dxz_),
-        dyy(dyy_), dyz(dyz_), dzz(dzz_) {
-    }
+        dyy(dyy_), dyz(dyz_), dzz(dzz_) {}
 
     // Addition
     Dual2_3d operator+(const Dual2_3d& o) const {
-        using ReturnType = std::common_type_t<T, decltype(o.val)>;
+        typedef typename std::common_type<T, decltype(o.val)>::type ReturnType;
         return Dual2_3d<ReturnType>(
-            val + o.val,
-            dx + o.dx,
-            dy + o.dy,
-            dz + o.dz,
-            dxx + o.dxx,
-            dxy + o.dxy,
-            dxz + o.dxz,
-            dyy + o.dyy,
-            dyz + o.dyz,
-            dzz + o.dzz
+            val + o.val, dx + o.dx, dy + o.dy, dz + o.dz,
+            dxx + o.dxx, dxy + o.dxy, dxz + o.dxz,
+            dyy + o.dyy, dyz + o.dyz, dzz + o.dzz
         );
     }
 
     // Subtraction
     Dual2_3d operator-(const Dual2_3d& o) const {
-        using ReturnType = std::common_type_t<T, decltype(o.val)>;
+        typedef typename std::common_type<T, decltype(o.val)>::type ReturnType;
         return Dual2_3d<ReturnType>(
-            val - o.val,
-            dx - o.dx,
-            dy - o.dy,
-            dz - o.dz,
-            dxx - o.dxx,
-            dxy - o.dxy,
-            dxz - o.dxz,
-            dyy - o.dyy,
-            dyz - o.dyz,
-            dzz - o.dzz
+            val - o.val, dx - o.dx, dy - o.dy, dz - o.dz,
+            dxx - o.dxx, dxy - o.dxy, dxz - o.dxz,
+            dyy - o.dyy, dyz - o.dyz, dzz - o.dzz
         );
     }
 
     // Multiplication
     Dual2_3d operator*(const Dual2_3d& o) const {
-        using ReturnType = std::common_type_t<T, decltype(o.val)>;
+        typedef typename std::common_type<T, decltype(o.val)>::type ReturnType;
         ReturnType v = val * o.val;
         ReturnType dx_ = dx * o.val + val * o.dx;
         ReturnType dy_ = dy * o.val + val * o.dy;
@@ -135,12 +117,12 @@ struct Dual2_3d {
 
     // Division
     Dual2_3d operator/(const Dual2_3d& o) const {
-        using RawType = std::common_type_t<T, decltype(o.val)>;
-        using ReturnType = std::conditional_t<
-            std::is_arithmetic_v<RawType>,
+        typedef typename std::common_type<T, decltype(o.val)>::type RawType;
+        typedef typename std::conditional<
+            std::is_arithmetic<RawType>::value,
             double,
             std::complex<double>
-        >;
+        >::type ReturnType;
         ReturnType v = static_cast<ReturnType>(val);
         ReturnType dx_ = static_cast<ReturnType>(dx);
         ReturnType dy_ = static_cast<ReturnType>(dy);
@@ -183,28 +165,32 @@ struct Dual2_3d {
 
     // Scalar right-hand side
     template<typename U>
-    auto operator+(U o) const {
-        using ReturnType = std::common_type_t<T, U>;
+    Dual2_3d<typename std::common_type<T, U>::type> operator+(U o) const {
+        typedef typename std::common_type<T, U>::type ReturnType;
         return Dual2_3d<ReturnType>(val + o, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
     }
     template<typename U>
-    auto operator-(U o) const {
-        using ReturnType = std::common_type_t<T, U>;
+    Dual2_3d<typename std::common_type<T, U>::type> operator-(U o) const {
+        typedef typename std::common_type<T, U>::type ReturnType;
         return Dual2_3d<ReturnType>(val - o, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
     }
     template<typename U>
-    auto operator*(U o) const {
-        using ReturnType = std::common_type_t<T, U>;
+    Dual2_3d<typename std::common_type<T, U>::type> operator*(U o) const {
+        typedef typename std::common_type<T, U>::type ReturnType;
         return Dual2_3d<ReturnType>(val * o, dx * o, dy * o, dz * o, dxx * o, dxy * o, dxz * o, dyy * o, dyz * o, dzz * o);
     }
     template<typename U>
-    auto operator/(U o) const {
-        using RawType = std::common_type_t<T, U>;
-        using ReturnType = std::conditional_t<
-            std::is_arithmetic_v<RawType>,
+    Dual2_3d<typename std::conditional<
+        std::is_arithmetic<typename std::common_type<T, U>::type>::value,
+        double,
+        std::complex<double>
+    >::type> operator/(U o) const {
+        typedef typename std::common_type<T, U>::type RawType;
+        typedef typename std::conditional<
+            std::is_arithmetic<RawType>::value,
             double,
             std::complex<double>
-        >;
+        >::type ReturnType;
         ReturnType o_ = static_cast<ReturnType>(o);
         return Dual2_3d<ReturnType>(
             val / o_,
@@ -230,34 +216,34 @@ struct Dual2_3d {
     }
 };
 
-// Deduction guide
-template<typename V, typename DX, typename DY, typename DZ, typename DXX, typename DXY, typename DXZ, typename DYY, typename DYZ, typename DZZ>
-Dual2_3d(V, DX, DY, DZ, DXX, DXY, DXZ, DYY, DYZ, DZZ) -> Dual2_3d<std::common_type_t<V, DX, DY, DZ, DXX, DXY, DXZ, DYY, DYZ, DZZ>>;
-
 // --- Dual2_3d <op> scalar (left hand side) ---
 template<typename T, typename O>
-auto operator+(O lhs, const Dual2_3d<T>& rhs) {
-    using ReturnType = std::common_type_t<O, T>;
+Dual2_3d<typename std::common_type<O, T>::type> operator+(O lhs, const Dual2_3d<T>& rhs) {
+    typedef typename std::common_type<O, T>::type ReturnType;
     return Dual2_3d<ReturnType>(lhs + rhs.val, rhs.dx, rhs.dy, rhs.dz, rhs.dxx, rhs.dxy, rhs.dxz, rhs.dyy, rhs.dyz, rhs.dzz);
 }
 template<typename T, typename O>
-auto operator-(O lhs, const Dual2_3d<T>& rhs) {
-    using ReturnType = std::common_type_t<O, T>;
+Dual2_3d<typename std::common_type<O, T>::type> operator-(O lhs, const Dual2_3d<T>& rhs) {
+    typedef typename std::common_type<O, T>::type ReturnType;
     return Dual2_3d<ReturnType>(lhs - rhs.val, -rhs.dx, -rhs.dy, -rhs.dz, -rhs.dxx, -rhs.dxy, -rhs.dxz, -rhs.dyy, -rhs.dyz, -rhs.dzz);
 }
 template<typename T, typename O>
-auto operator*(O lhs, const Dual2_3d<T>& rhs) {
-    using ReturnType = std::common_type_t<O, T>;
+Dual2_3d<typename std::common_type<O, T>::type> operator*(O lhs, const Dual2_3d<T>& rhs) {
+    typedef typename std::common_type<O, T>::type ReturnType;
     return Dual2_3d<ReturnType>(lhs * rhs.val, lhs * rhs.dx, lhs * rhs.dy, lhs * rhs.dz, lhs * rhs.dxx, lhs * rhs.dxy, lhs * rhs.dxz, lhs * rhs.dyy, lhs * rhs.dyz, lhs * rhs.dzz);
 }
 template<typename T, typename O>
-auto operator/(O lhs, const Dual2_3d<T>& rhs) {
-    using RawType = std::common_type_t<O, T>;
-    using ReturnType = std::conditional_t<
-        std::is_arithmetic_v<RawType>,
+Dual2_3d<typename std::conditional<
+    std::is_arithmetic<typename std::common_type<O, T>::type>::value,
+    double,
+    std::complex<double>
+>::type> operator/(O lhs, const Dual2_3d<T>& rhs) {
+    typedef typename std::common_type<O, T>::type RawType;
+    typedef typename std::conditional<
+        std::is_arithmetic<RawType>::value,
         double,
         std::complex<double>
-    >;
+    >::type ReturnType;
     ReturnType lhs_ = static_cast<ReturnType>(lhs);
     ReturnType v = static_cast<ReturnType>(rhs.val);
     ReturnType dx = static_cast<ReturnType>(rhs.dx);
@@ -288,11 +274,10 @@ auto operator/(O lhs, const Dual2_3d<T>& rhs) {
 }
 
 // Free functions for common operations
-// pow(x, scalar): x^exponent for Dual2_3d
 template<typename T, typename U>
-auto pow(const Dual2_3d<T>& x, U exponent) {
+Dual2_3d<typename std::common_type<T, U>::type> pow(const Dual2_3d<T>& x, U exponent) {
     using std::pow;
-    using ReturnType = std::common_type_t<T, U>;
+    typedef typename std::common_type<T, U>::type ReturnType;
     ReturnType v = pow(x.val, exponent);
     ReturnType dx = exponent * pow(x.val, exponent - 1) * x.dx;
     ReturnType dy = exponent * pow(x.val, exponent - 1) * x.dy;
@@ -312,12 +297,12 @@ auto pow(const Dual2_3d<T>& x, U exponent) {
     return Dual2_3d<ReturnType>(v, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
 }
 
-// pow(x, y): x^y for Dual2_3d
 template<typename T>
-auto pow(const Dual2_3d<T>& x, const Dual2_3d<T>& y) {
+Dual2_3d<typename std::common_type<T, decltype(std::pow(std::declval<T>(), std::declval<T>()))>::type>
+pow(const Dual2_3d<T>& x, const Dual2_3d<T>& y) {
     using std::pow;
     using std::log;
-    using ReturnType = std::common_type_t<T, decltype(pow(x.val, y.val))>;
+    typedef typename std::common_type<T, decltype(pow(x.val, y.val))>::type ReturnType;
     ReturnType v = pow(x.val, y.val);
     ReturnType logx = log(x.val);
 
@@ -365,8 +350,9 @@ auto pow(const Dual2_3d<T>& x, const Dual2_3d<T>& y) {
 }
 
 template<typename T>
-auto exp(const Dual2_3d<T>& x) {
-    using ReturnType = std::common_type_t<T, decltype(std::exp(x.val))>;
+Dual2_3d<typename std::common_type<T, decltype(std::exp(std::declval<T>()))>::type>
+exp(const Dual2_3d<T>& x) {
+    typedef typename std::common_type<T, decltype(std::exp(std::declval<T>()))>::type ReturnType;
     ReturnType v = std::exp(x.val);
     ReturnType dx = v * x.dx;
     ReturnType dy = v * x.dy;
@@ -381,8 +367,9 @@ auto exp(const Dual2_3d<T>& x) {
 }
 
 template<typename T>
-auto sqrt(const Dual2_3d<T>& x) {
-    using ReturnType = std::common_type_t<T, decltype(x.val)>;
+Dual2_3d<typename std::common_type<T, decltype(std::sqrt(std::declval<T>()))>::type>
+sqrt(const Dual2_3d<T>& x) {
+    typedef typename std::common_type<T, decltype(std::sqrt(std::declval<T>()))>::type ReturnType;
     ReturnType v = std::sqrt(x.val);
     ReturnType dx = 0.5 / v * x.dx;
     ReturnType dy = 0.5 / v * x.dy;
