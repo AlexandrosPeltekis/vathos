@@ -49,14 +49,32 @@ struct rVar {
         }
     }
 
+	//Zero gradient
+    void zero_grad() {
+        std::vector<NodePtr> stack = { node };
+        std::unordered_set<NodePtr> visited;
+        while (!stack.empty()) {
+            NodePtr n = stack.back();
+            stack.pop_back();
+            if (visited.count(n)) continue;
+            visited.insert(n);
+            n->grad = 0.0;
+            for (const NodePtr& input : n->inputs) {
+                if (input) stack.push_back(input);
+            }
+        }
+    }
+
     // Operator Overloads
     friend rVar operator+(const rVar& a, const rVar& b) {
         rVar out(a.val() + b.val());
         out.node->inputs = { a.node, b.node };
-        out.node->backward = [a, b, self = out.node]() {
-            std::cout << "Running backward for +\n";
-            a.node->grad += self->grad;
-            b.node->grad += self->grad;
+        Node* a_ptr = a.node.get();
+        Node* b_ptr = b.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, b_ptr, self]() {
+            a_ptr->grad += self->grad;
+            b_ptr->grad += self->grad;
             };
         return out;
     }
@@ -64,9 +82,12 @@ struct rVar {
     friend rVar operator*(const rVar& a, const rVar& b) {
         rVar out(a.val() * b.val());
         out.node->inputs = { a.node, b.node };
-        out.node->backward = [a, b, self = out.node]() {
-            a.node->grad += b.val() * self->grad;
-            b.node->grad += a.val() * self->grad;
+        Node* a_ptr = a.node.get();
+        Node* b_ptr = b.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, b_ptr, self]() {
+            a_ptr->grad += b_ptr->val * self->grad;
+            b_ptr->grad += a_ptr->val * self->grad;
             };
         return out;
     }
@@ -74,9 +95,12 @@ struct rVar {
     friend rVar operator-(const rVar& a, const rVar& b) {
         rVar out(a.val() - b.val());
         out.node->inputs = { a.node, b.node };
-        out.node->backward = [a, b, self = out.node]() {
-            a.node->grad += self->grad;
-            b.node->grad -= self->grad;
+        Node* a_ptr = a.node.get();
+        Node* b_ptr = b.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, b_ptr, self]() {
+            a_ptr->grad += self->grad;
+            b_ptr->grad -= self->grad;
             };
         return out;
     }
@@ -84,9 +108,12 @@ struct rVar {
     friend rVar operator/(const rVar& a, const rVar& b) {
         rVar out(a.val() / b.val());
         out.node->inputs = { a.node, b.node };
-        out.node->backward = [a, b, self = out.node]() {
-            a.node->grad += (1.0 / b.val()) * self->grad;
-            b.node->grad -= (a.val() / (b.val() * b.val())) * self->grad;
+        Node* a_ptr = a.node.get();
+        Node* b_ptr = b.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, b_ptr, self]() {
+            a_ptr->grad += (1.0 / b_ptr->val) * self->grad;
+            b_ptr->grad -= (a_ptr->val / (b_ptr->val * b_ptr->val)) * self->grad;
             };
         return out;
     }
@@ -94,8 +121,10 @@ struct rVar {
     friend rVar sin(const rVar& a) {
         rVar out(std::sin(a.val()));
         out.node->inputs = { a.node };
-        out.node->backward = [a, self = out.node]() {
-            a.node->grad += std::cos(a.val()) * self->grad;
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, self ]() {
+            a_ptr->grad += std::cos(a_ptr->val) * self->grad;
             };
         return out;
     }
@@ -103,17 +132,32 @@ struct rVar {
     friend rVar cos(const rVar& a) {
         rVar out(std::cos(a.val()));
         out.node->inputs = { a.node };
-        out.node->backward = [a, self = out.node]() {
-            a.node->grad -= std::sin(a.val()) * self->grad;
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, self ]() {
+            a_ptr->grad -= std::sin(a_ptr->val) * self->grad;
             };
         return out;
     }
 
+    friend rVar tan(const rVar& a) {
+        rVar out(std::tan(a.val()));
+        out.node->inputs = { a.node };
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, self ]() {
+            a_ptr->grad += (1.0 / std::cos(a_ptr->val) / std::cos(a_ptr->val)) * self->grad;
+            };
+        return out;
+	}
+
     friend rVar exp(const rVar& a) {
         rVar out(std::exp(a.val()));
         out.node->inputs = { a.node };
-        out.node->backward = [a, self = out.node]() {
-            a.node->grad += self->val * self->grad;
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, self ]() {
+            a_ptr->grad += self->val * self->grad;
             };
         return out;
     }
@@ -121,9 +165,58 @@ struct rVar {
     friend rVar pow(const rVar& a, double p) {
         rVar out(std::pow(a.val(), p));
         out.node->inputs = { a.node };
-        out.node->backward = [a, p, self = out.node]() {
-            a.node->grad += p * std::pow(a.val(), p - 1) * self->grad;
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, p, self]() {
+            a_ptr->grad += p * std::pow(a_ptr->val, p - 1) * self->grad;
             };
         return out;
     }
+
+    friend rVar pow(double base, const rVar& a) {
+        rVar out(std::pow(base, a.val()));
+        out.node->inputs = { a.node };
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [base, a_ptr, self]() {
+            a_ptr->grad += std::log(base) * std::pow(base, a_ptr->val) * self->grad;
+            };
+        return out;
+	}
+
+    friend rVar pow(const rVar& a, const rVar& b) {
+        rVar out(std::pow(a.val(), b.val()));
+        Node* a_ptr = a.node.get();
+        Node* b_ptr = b.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, b_ptr, self]() {
+            a_ptr->grad += b_ptr->val * std::pow(a_ptr->val, b_ptr->val - 1) * self->grad;
+            b_ptr->grad += std::log(a_ptr->val) * std::pow(a_ptr->val, b_ptr->val) * self->grad;
+            };
+        return out;
+	}
+
+    friend rVar sqrt(const rVar& a) {
+        rVar out(std::sqrt(a.val()));
+        out.node->inputs = { a.node };
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, self ]() {
+            a_ptr->grad += (0.5 / std::sqrt(a_ptr->val)) * self->grad;
+            };
+        return out;
+	}
+
+    friend rVar log(const rVar& a) {
+        rVar out(std::log(a.val()));
+        out.node->inputs = { a.node };
+        Node* a_ptr = a.node.get();
+        Node* self = out.node.get();
+        out.node->backward = [a_ptr, self ]() {
+            a_ptr->grad += (1.0 / a_ptr->val) * self->grad;
+            };
+        return out;
+	}
+
+
 };
