@@ -11,15 +11,15 @@
 
     Members:
       val   = f(x, y, z)         // function value
-      dx    = ∂f/∂x              // first partial derivative w.r.t. x
-      dy    = ∂f/∂y              // first partial derivative w.r.t. y
-      dz    = ∂f/∂z              // first partial derivative w.r.t. z
-      dxx   = ∂²f/∂x²            // second partial derivative w.r.t. x
-	  dxy   = ∂²f/∂x∂y           // mixed second partial derivative w.r.t. x and y
-	  dxz   = ∂²f/∂x∂z           // mixed second partial derivative w.r.t. x and z
-      dyy   = ∂²f/∂y²            // second partial derivative w.r.t. y
-	  dyz   = ∂²f/∂y∂z           // mixed second partial derivative w.r.t. y and z
-      dzz   = ∂²f/∂z²            // second partial derivative w.r.t. z
+      dx    = df/dx              // first partial derivative w.r.t. x
+      dy    = df/dy              // first partial derivative w.r.t. y
+      dz    = df/dz              // first partial derivative w.r.t. z
+      dxx   = d²f/dx²            // second partial derivative w.r.t. x
+	  dxy   = d²f/dxdy           // mixed second partial derivative w.r.t. x and y
+	  dxz   = d²f/dxdz           // mixed second partial derivative w.r.t. x and z
+      dyy   = d²f/dy²            // second partial derivative w.r.t. y
+	  dyz   = d²f/dydz           // mixed second partial derivative w.r.t. y and z
+      dzz   = d²f/dz²            // second partial derivative w.r.t. z
 
     Constructors:
       Dual2_3d()
@@ -31,7 +31,7 @@
         - Represents a constant function.
 
       Dual2_3d(val, dx, dy, dz)
-        - Sets f(x, y, z) = val, ∂f/∂x = dx, ∂f/∂y = dy, ∂f/∂z = dz.
+        - Sets f(x, y, z) = val, df/dx = dx, df/dy = dy, df/dz = dz.
         - All second derivatives are zero.
         - Represents a function linear in x, y, z.
 
@@ -55,15 +55,15 @@
 template<typename T>
 struct Dual2_3d {
     T val;   // function value
-    T dx;    // ∂f/∂x
-    T dy;    // ∂f/∂y
-    T dz;    // ∂f/∂z
-    T dxx;   // ∂²f/∂x²
-    T dxy;   // ∂²f/∂x∂y
-    T dxz;   // ∂²f/∂x∂z
-    T dyy;   // ∂²f/∂y²
-    T dyz;   // ∂²f/∂y∂z
-    T dzz;   // ∂²f/∂z²
+    T dx;    // df/dx
+    T dy;    // df/dy
+    T dz;    // df/dz
+    T dxx;   // d²f/dx²
+    T dxy;   // d²f/dxdy
+    T dxz;   // d²f/dxdz
+    T dyy;   // d²f/dy²
+    T dyz;   // d²f/dydz
+    T dzz;   // d²f/dz²
 
     // Constructors
     Dual2_3d()
@@ -419,4 +419,55 @@ auto sqrt(const Dual2_3d<T>& x) {
     ReturnType dyz = 0.5 / v * x.dyz - 0.25 * x.dy * x.dz / (v * v * v);
     ReturnType dzz = 0.5 / v * x.dzz - 0.25 * x.dz * x.dz / (v * v * v);
     return Dual2_3d<ReturnType>(v, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
+}
+
+// Sine for Dual2_3d
+template<typename T>
+auto sin(const Dual2_3d<T>& x) {
+    using ReturnType = std::common_type_t<T, decltype(std::sin(x.val))>;
+    ReturnType v = std::sin(x.val);
+    ReturnType dx = std::cos(x.val) * x.dx;
+    ReturnType dy = std::cos(x.val) * x.dy;
+    ReturnType dz = std::cos(x.val) * x.dz;
+    ReturnType dxx = -std::sin(x.val) * x.dx * x.dx + std::cos(x.val) * x.dxx;
+    ReturnType dxy = -std::sin(x.val) * x.dx * x.dy + std::cos(x.val) * x.dxy;
+    ReturnType dxz = -std::sin(x.val) * x.dx * x.dz + std::cos(x.val) * x.dxz;
+    ReturnType dyy = -std::sin(x.val) * x.dy * x.dy + std::cos(x.val) * x.dyy;
+    ReturnType dyz = -std::sin(x.val) * x.dy * x.dz + std::cos(x.val) * x.dyz;
+    ReturnType dzz = -std::sin(x.val) * x.dz * x.dz + std::cos(x.val) * x.dzz;
+    return Dual2_3d<ReturnType>(v, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
+}
+
+// Cosine for Dual2_3d
+template<typename T>
+auto cos(const Dual2_3d<T>& x) {
+    using ReturnType = std::common_type_t<T, decltype(std::cos(x.val))>;
+    ReturnType v = std::cos(x.val);
+    ReturnType dx = -std::sin(x.val) * x.dx;
+    ReturnType dy = -std::sin(x.val) * x.dy;
+    ReturnType dz = -std::sin(x.val) * x.dz;
+    ReturnType dxx = -std::cos(x.val) * x.dx * x.dx - std::sin(x.val) * x.dxx;
+    ReturnType dxy = -std::cos(x.val) * x.dx * x.dy - std::sin(x.val) * x.dxy;
+    ReturnType dxz = -std::cos(x.val) * x.dx * x.dz - std::sin(x.val) * x.dxz;
+    ReturnType dyy = -std::cos(x.val) * x.dy * x.dy - std::sin(x.val) * x.dyy;
+    ReturnType dyz = -std::cos(x.val) * x.dy * x.dz - std::sin(x.val) * x.dyz;
+    ReturnType dzz = -std::cos(x.val) * x.dz * x.dz - std::sin(x.val) * x.dzz;
+    return Dual2_3d<ReturnType>(v, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
+}
+
+// Tangent for Dual2_3d
+template<typename T>
+auto tan(const Dual2_3d<T>& x) {
+    using ReturnType = std::common_type_t<T, decltype(std::tan(x.val))>;
+    ReturnType v = std::tan(x.val);
+    ReturnType dx = (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dx;
+    ReturnType dy = (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dy;
+    ReturnType dz = (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dz;
+    ReturnType dxx = (2.0 * std::sin(x.val) / (std::cos(x.val) * std::cos(x.val) * std::cos(x.val))) * x.dx * x.dx + (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dxx;
+    ReturnType dxy = (2.0 * std::sin(x.val) / (std::cos(x.val) * std::cos(x.val) * std::cos(x.val))) * x.dx * x.dy + (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dxy;
+    ReturnType dxz = (2.0 * std::sin(x.val) / (std::cos(x.val) * std::cos(x.val) * std::cos(x.val))) * x.dx * x.dz + (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dxz;
+    ReturnType dyy = (2.0 * std::sin(x.val) / (std::cos(x.val) * std::cos(x.val) * std::cos(x.val))) * x.dy * x.dy + (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dyy;
+    ReturnType dyz = (2.0 * std::sin(x.val) / (std::cos(x.val) * std::cos(x.val) * std::cos(x.val))) * x.dy * x.dz + (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dyz;
+	ReturnType dzz = (2.0 * std::sin(x.val) / (std::cos(x.val) * std::cos(x.val) * std::cos(x.val))) * x.dz * x.dz + (1.0 / (std::cos(x.val) * std::cos(x.val))) * x.dzz;
+	return Dual2_3d<ReturnType>(v, dx, dy, dz, dxx, dxy, dxz, dyy, dyz, dzz);
 }

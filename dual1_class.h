@@ -1,10 +1,48 @@
-#include <cmath>
+﻿#include <cmath>
 #include <complex>
 #include <array>
 #include "dualbase_class.h"
+/*
+    Dual1<T> - Mathematical Guide
 
+    This class represents a univariate function f(x) and its first derivative.
+
+    Members:
+      val   = f(p)        // function value
+      d1    = df/dp      // first derivative with respect to a parameter
+
+    Constructors:
+      Dual1()
+        - Sets value and derivative to zero.
+        - Represents the zero function.
+
+      Dual1(val)
+        - Sets f(p) = val, derivative zero.
+        - Represents a constant function.
+
+      Dual1(val, d1)
+        - Sets f(p) = val, df/dp = d1.
+        - Represents a function linear in p.
+
+    Note:
+      If you omit the derivative in the constructor, it is set to zero by default.
+      This is mathematically equivalent to assuming the function does not vary in x.
+
+    Seeding for Automatic Differentiation:
+      - To represent the variable p: Dual1<T>(p0, 1);
+      - To represent a constant:    Dual1<T>(c0);
+
+    Directional Derivative:
+      - If you set d1 = 1 for all variables (e.g., Dual1<T>(p0, 1)), then after evaluating a function f, 
+      the d1 member will contain the directional derivative of f in the direction where all variables increase 
+      equally (i.e., the sum of partial derivatives with respect to each variable).
+	  i.e ., d1 = df/dx + df/dy + df/dz for a function f(x, y, z) evaluated at (x0, y0, z0).
+	  and the seeding looks like this:
+      Dual1<T>(x0, 1); // for x
+      Dual1<T>(y0, 1); // for y
+      Dual1<T>(z0, 1); // for z
+*/
 // First-order Dual number: inherits from DualBase and adds first derivative
-// --- Dual1<T> member operators for scalar types ---
 template<typename T>
 struct Dual1 : public DualBase<T> {
     T d1;
@@ -153,54 +191,80 @@ auto operator/(O lhs, const Dual1<T>& rhs) { // More involved due to potential i
 // Exponential for Dual2_3d
 template<typename T>
 auto exp(const Dual1<T>& x) {
-    using ReturnType = Dual1<decltype(std::exp(x.val))>; // Promote to the type of exp(x.val)
-    auto exp_val = std::exp(x.val);
+    using ReturnType = decltype(std::exp(x.val)); // Promote to the type of exp(x.val)
+    ReturnType exp_val = std::exp(x.val);
     ReturnType d1 = x.d1 * exp_val;
-    return ReturnType(exp_val, d1);
+    return Dual1<ReturnType>(exp_val, d1);
 }
 
 // Logarithm for Dual1
 template<typename T>
 auto log(const Dual1<T>& x) {
-    using ReturnType = Dual1<decltype(std::log(x.val))>; // Promote to the type of log(x.val)
-    auto log_val = std::log(x.val);
-    ReturnType d1 = x.d1 / x.val
-    return ReturnType(log_val, d1);
+    using ReturnType = decltype(std::log(x.val)); // Promote to the type of log(x.val)
+    ReturnType log_val = std::log(x.val);
+    ReturnType d1 = x.d1 / x.val;
+    return Dual1<ReturnType>(log_val, d1);
 }
 
 // pow(x, scalar): x^exponent for Dual1
 template<typename T, typename U>
 auto pow(const Dual1<T>& x, U exponent) {
-    using ReturnType = Dual1<decltype(std::pow(x.val, exponent))>; // Promote to the type of pow(x.val, exponent)
-    auto pow_val = std::pow(x.val, exponent);
-    ReturnType d1 = exponent * pow(x.val, exponent - 1) * x.d1
-    return ReturnType(pow_val, d1);
+    using ReturnType = decltype(std::pow(x.val, exponent)); // Promote to the type of pow(x.val, exponent)
+    ReturnType pow_val = std::pow(x.val, exponent);
+    ReturnType d1 = exponent * pow(x.val, exponent - 1) * x.d1;
+    return Dual1<ReturnType>(pow_val, d1);
 }
 
 // pow(scalar, x): exponent^x for Dual1
 template<typename T, typename U>
 auto pow(U base, const Dual1<T>& x) {
-    using ReturnType = Dual1<decltype(std::pow(base, x.val))>; // Promote to the type of pow(base, x.val)
-    auto pow_val = std::pow(base, x.val);
-    ReturnType d1 = x.d1 * std::log(base) * pow_val
-    return ReturnType(pow_val, d1);
+    using ReturnType = decltype(std::pow(base, x.val)); // Promote to the type of pow(base, x.val)
+    ReturnType pow_val = std::pow(base, x.val);
+    ReturnType d1 = x.d1 * std::log(base) * pow_val;
+    return Dual1<ReturnType>(pow_val, d1);
 }
 
 // pow(x, y): x^y for Dual1
 template<typename T, typename U>
 auto pow(const Dual1<T>& x, const Dual1<U>& y) {
-    using ReturnType = Dual1<decltype(std::pow(x.val, y.val))>; // Promote to the type of pow(x.val, y.val)
-    auto pow_val = std::pow(x.val, y.val);
-    ReturnType d1 = x.d1 * y.val * std::pow(x.val, y.val - 1) +
-        y.d1 * std::log(x.val) * pow_val
-    return ReturnType(pow_val, d1);
+    using ReturnType = decltype(std::pow(x.val, y.val)); // Promote to the type of pow(x.val, y.val)
+    ReturnType pow_val = std::pow(x.val, y.val);
+    ReturnType d1 = x.d1 * y.val * std::pow(x.val, y.val - 1) + y.d1 * std::log(x.val) * pow_val;
+    return Dual1<ReturnType>(pow_val, d1);
 }
 
 // Square root for Dual1
 template<typename T>
 auto sqrt(const Dual1<T>& x) {
-    using ReturnType = Dual1<decltype(std::sqrt(x.val))>; // Promote to the type of sqrt(x.val)
-    auto sqrt_val = std::sqrt(x.val);
+    using ReturnType = decltype(std::sqrt(x.val)); // Promote to the type of sqrt(x.val)
+    ReturnType sqrt_val = std::sqrt(x.val);
     ReturnType d1 = x.d1 / (2 * sqrt_val);
-    return ReturnType(sqrt_val, d1);
+    return Dual1<ReturnType>(sqrt_val, d1);
+}
+
+// Sine for Dual1
+template<typename T>
+auto sin(const Dual1<T>& x) {
+    using ReturnType = decltype(std::sin(x.val)); // Promote to the type of sin(x.val)
+    ReturnType sin_val = std::sin(x.val);
+    ReturnType d1 = x.d1 * std::cos(x.val);
+    return Dual1<ReturnType>(sin_val, d1);
+}
+
+// Cosine for Dual1
+template<typename T>
+auto cos(const Dual1<T>& x) {
+    using ReturnType = decltype(std::cos(x.val)); // Promote to the type of cos(x.val)
+    ReturnType cos_val = std::cos(x.val);
+    ReturnType d1 = -x.d1 * std::sin(x.val);
+    return Dual1<ReturnType>(cos_val, d1);
+}
+
+// Tangent for Dual1
+template<typename T>
+auto tan(const Dual1<T>& x) {
+    using ReturnType = decltype(std::tan(x.val)); // Promote to the type of tan(x.val)
+    ReturnType tan_val = std::tan(x.val);
+    ReturnType d1 = x.d1 / (std::cos(x.val) * std::cos(x.val));
+    return Dual1<ReturnType>(tan_val, d1);
 }
